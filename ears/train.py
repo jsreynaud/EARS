@@ -108,7 +108,7 @@ if __name__ == '__main__':
         audio = pydub.AudioSegment.from_file(audio_file).set_frame_rate(SAMPLING_RATE).set_channels(1)
         audio = (np.fromstring(audio._data, dtype="int16") + 0.5) / (0x7FFF + 0.5)
 
-        spec = librosa.feature.melspectrogram(audio, SAMPLING_RATE, n_fft=FFT_SIZE, power_to_db=1e-5,
+        spec = librosa.feature.melspectrogram(audio, SAMPLING_RATE, n_fft=FFT_SIZE,
                                               hop_length=CHUNK_SIZE, n_mels=MEL_BANDS)
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')  # Ignore log10 zero division
