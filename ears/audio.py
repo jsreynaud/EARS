@@ -76,6 +76,7 @@ def start():
         model = keras.models.model_from_json(cfg)
 
     model.load_weights('ears/model.h5')
+    model.summary()
     logger.debug('Loaded Keras model with weights.')
 
     # Start audio capture
@@ -154,6 +155,7 @@ def classify(segments):
     X = np.stack(segments)
     X -= AUDIO_MEAN
     X /= AUDIO_STD
+    print(X.shape)
     pred = model.predict(X)
     pred = np.average(pred, axis=0, weights=np.arange(len(pred)) + 1)
 
