@@ -3,7 +3,7 @@
 import librosa
 
 
-AUDIO_DEVICE = 'H1'  # Recording device name as listed by `python -m sounddevice`
+AUDIO_DEVICE = 'default'  # Recording device name as listed by `python -m sounddevice`
 
 AUDIO_DURATION = 10  # Duration of audio material to retain, in seconds
 

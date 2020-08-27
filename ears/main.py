@@ -30,7 +30,7 @@ TEXT_FONT = 'Signika'
 SLIDER_WIDTH = 250
 
 threshold = Slider(start=0.0, end=1.0, value=PALETTE_DEFAULT_THRESHOLD, step=0.05,
-                   callback_policy='mouseup', title='Colorize probabilities greater than',
+                   title='Colorize probabilities greater than',  # callback_policy='mouseup',
                    width=SLIDER_WIDTH, css_classes=['threshold-slider'])
 
 SPEC_WIDTH = np.shape(audio.spectrogram)[1]
@@ -367,7 +367,7 @@ grid = column(
     row(spec_plot),
     row(history_plot, last_plot),
     row(filler, widgetbox(threshold)),
-    row(filler2, Button(label='Mute', callback=live_audio_callback, name='mute_button'))
+    row(filler2, Button(label='Mute',  name='mute_button'))  # callback=live_audio_callback
 )
 
 curdoc().title = 'EARS: Environmental Audio Recognition System'

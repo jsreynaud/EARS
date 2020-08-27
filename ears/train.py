@@ -21,14 +21,15 @@ THEANO_FLAGS = ('device=gpu0,'
 os.environ['THEANO_FLAGS'] = THEANO_FLAGS
 os.environ['KERAS_BACKEND'] = 'theano'
 
-import keras
-keras.backend.set_image_dim_ordering('th')
-from keras.layers.convolutional import Conv2D as Conv
-from keras.layers.convolutional import MaxPooling2D as Pool
-from keras.layers.advanced_activations import LeakyReLU
+import keras.layers as layers
+#    from tensorflow.keras import layers
+# from keras.layers.convolutional import Conv2D as Conv
+# from keras.layers.convolutional import MaxPooling2D as Pool
+# from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.core import Activation, Dense, Dropout, Flatten
 from keras.regularizers import l2 as L2
 
+import keras
 
 from config import *
 
@@ -117,7 +118,7 @@ if __name__ == '__main__':
                                               hop_length=CHUNK_SIZE, n_mels=MEL_BANDS)
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')  # Ignore log10 zero division
-            spec = librosa.core.perceptual_weighting(spec, MEL_FREQS, amin=1e-5, ref_power=1e-5,
+            spec = librosa.core.perceptual_weighting(spec, MEL_FREQS, amin=1e-5,
                                                      top_db=None)
 
         spec = np.clip(spec, 0, 100)
@@ -126,10 +127,42 @@ if __name__ == '__main__':
     # Define model
     logger.info('Constructing model...')
 
-    input_shape = 1, MEL_BANDS, SEGMENT_LENGTH
+    input_shape = 1, SEGMENT_LENGTH, MEL_BANDS  # , SEGMENT_LENGTH
 
-    model = keras.models.Sequential()
+    # model = keras.models.Sequential()
 
+    model = keras.models.Sequential(
+        [
+
+            layers.Input(shape=input_shape),
+            layers.Conv1D(
+                filters=80, kernel_size=1, kernel_regularizer=L2(0.001), kernel_initializer='he_uniform', activation="relu"
+            ),
+            layers.LeakyReLU(),
+            layers.MaxPool2D(1, 1),
+
+            layers.Conv1D(
+                filters=160, kernel_size=1, kernel_regularizer=L2(0.001), kernel_initializer='he_uniform', activation="relu"
+            ),
+            layers.LeakyReLU(),
+            layers.MaxPool2D(1, 1),
+
+            layers.Conv1D(
+                filters=240, kernel_size=1, kernel_regularizer=L2(0.001), kernel_initializer='he_uniform', activation="relu"
+            ),
+            layers.LeakyReLU(),
+            layers.MaxPool2D(1, 1),
+
+
+            layers.Flatten(),
+            layers.Dropout(rate=0.5),
+            layers.Dense(len(labels), kernel_regularizer=L2(0.001), kernel_initializer='he_uniform'),
+            layers.Activation('softmax'),
+
+        ]
+    )
+
+    """
     model.add(Conv(80, (3, 3), kernel_regularizer=L2(0.001), kernel_initializer='he_uniform',
                    input_shape=input_shape))
     model.add(LeakyReLU())
@@ -148,9 +181,12 @@ if __name__ == '__main__':
 
     model.add(Dense(len(labels), kernel_regularizer=L2(0.001), kernel_initializer='he_uniform'))
     model.add(Activation('softmax'))
+    """
 
     optimizer = keras.optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+    # model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001), loss="mse")
+    model.summary()
 
     # Train model
     batch_size = 100
