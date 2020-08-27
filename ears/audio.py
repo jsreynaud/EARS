@@ -65,8 +65,8 @@ def start():
                     'dnn.conv.algo_bwd_filter=deterministic,'
                     'dnn.conv.algo_bwd_data=deterministic')
 
-    os.environ['THEANO_FLAGS'] = THEANO_FLAGS
-    os.environ['KERAS_BACKEND'] = 'theano'
+    #os.environ['THEANO_FLAGS'] = THEANO_FLAGS
+    #os.environ['KERAS_BACKEND'] = 'theano'
 
     import keras
     # keras.backend.set_image_dim_ordering('th')
@@ -115,7 +115,7 @@ def start():
 
             # Populate spectrogram
             new_spec = librosa.feature.melspectrogram(np.concatenate([last_chunk, step_audio])[:, 0],
-                                                      SAMPLING_RATE, n_fft=FFT_SIZE,
+                                                      SAMPLING_RATE, n_fft=FFT_SIZE, power_to_db=1e-5,
                                                       hop_length=CHUNK_SIZE, n_mels=MEL_BANDS)
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')  # Ignore log10 zero division

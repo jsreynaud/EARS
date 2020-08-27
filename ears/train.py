@@ -12,26 +12,20 @@ import pandas as pd
 import pydub
 import sklearn.preprocessing
 from tqdm import tqdm
+import keras
+import keras.layers as layers
+from keras.regularizers import l2 as L2
+from config import *
 
 THEANO_FLAGS = ('device=gpu0,'
                 'floatX=float32,'
                 'dnn.conv.algo_bwd_filter=deterministic,'
                 'dnn.conv.algo_bwd_data=deterministic')
 
-os.environ['THEANO_FLAGS'] = THEANO_FLAGS
-os.environ['KERAS_BACKEND'] = 'theano'
+#os.environ['THEANO_FLAGS'] = THEANO_FLAGS
+#os.environ['KERAS_BACKEND'] = 'theano'
 
-import keras.layers as layers
-#    from tensorflow.keras import layers
-# from keras.layers.convolutional import Conv2D as Conv
-# from keras.layers.convolutional import MaxPooling2D as Pool
-# from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.core import Activation, Dense, Dropout, Flatten
-from keras.regularizers import l2 as L2
-
-import keras
-
-from config import *
+# keras.backend.set_image_data_format('channels_first')
 
 
 def to_one_hot(targets, class_count):
@@ -114,7 +108,7 @@ if __name__ == '__main__':
         audio = pydub.AudioSegment.from_file(audio_file).set_frame_rate(SAMPLING_RATE).set_channels(1)
         audio = (np.fromstring(audio._data, dtype="int16") + 0.5) / (0x7FFF + 0.5)
 
-        spec = librosa.feature.melspectrogram(audio, SAMPLING_RATE, n_fft=FFT_SIZE,
+        spec = librosa.feature.melspectrogram(audio, SAMPLING_RATE, n_fft=FFT_SIZE, power_to_db=1e-5,
                                               hop_length=CHUNK_SIZE, n_mels=MEL_BANDS)
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')  # Ignore log10 zero division
@@ -127,41 +121,40 @@ if __name__ == '__main__':
     # Define model
     logger.info('Constructing model...')
 
-    input_shape = 1, SEGMENT_LENGTH, MEL_BANDS  # , SEGMENT_LENGTH
+    input_shape = 1, MEL_BANDS, SEGMENT_LENGTH  # , SEGMENT_LENGTH
 
     # model = keras.models.Sequential()
 
+    print("pre")
     model = keras.models.Sequential(
         [
 
             layers.Input(shape=input_shape),
-            layers.Conv1D(
-                filters=80, kernel_size=1, kernel_regularizer=L2(0.001), kernel_initializer='he_uniform', activation="relu"
-            ),
+            layers.Reshape((100, 80, 1), input_shape=input_shape),
+            layers.Conv2D(80, (3, 3), kernel_regularizer=L2(0.001), kernel_initializer='he_uniform', activation="relu"
+                          ),
             layers.LeakyReLU(),
-            layers.MaxPool2D(1, 1),
+            layers.MaxPool2D((3, 3), (3, 3)),
 
-            layers.Conv1D(
-                filters=160, kernel_size=1, kernel_regularizer=L2(0.001), kernel_initializer='he_uniform', activation="relu"
-            ),
+            layers.Conv2D(160, (3, 3), kernel_regularizer=L2(0.001), kernel_initializer='he_uniform', activation="relu"
+                          ),
             layers.LeakyReLU(),
-            layers.MaxPool2D(1, 1),
+            layers.MaxPool2D((3, 3), (3, 3)),
 
-            layers.Conv1D(
-                filters=240, kernel_size=1, kernel_regularizer=L2(0.001), kernel_initializer='he_uniform', activation="relu"
-            ),
+            layers.Conv2D(240, (3, 3), kernel_regularizer=L2(0.001), kernel_initializer='he_uniform', activation="relu"
+                          ),
             layers.LeakyReLU(),
-            layers.MaxPool2D(1, 1),
+            layers.MaxPool2D((3, 3), (3, 3)),
 
 
             layers.Flatten(),
             layers.Dropout(rate=0.5),
             layers.Dense(len(labels), kernel_regularizer=L2(0.001), kernel_initializer='he_uniform'),
             layers.Activation('softmax'),
-
         ]
     )
 
+    print("ok")
     """
     model.add(Conv(80, (3, 3), kernel_regularizer=L2(0.001), kernel_initializer='he_uniform',
                    input_shape=input_shape))
@@ -187,7 +180,6 @@ if __name__ == '__main__':
     model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
     # model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001), loss="mse")
     model.summary()
-
     # Train model
     batch_size = 100
     EPOCH_MULTIPLIER = 10
@@ -197,9 +189,9 @@ if __name__ == '__main__':
 
     logger.info('Training... (batch size of {} | {} batches per epoch)'.format(batch_size, bpe))
 
-    model.fit_generator(generator=iterbatches(batch_size, meta),
-                        steps_per_epoch=bpe,
-                        epochs=epochs)
+    model.fit(iterbatches(batch_size, meta),
+              steps_per_epoch=bpe,
+              epochs=epochs)
 
     with open('model.json', 'w') as file:
         file.write(model.to_json())
