@@ -14,8 +14,8 @@ import sounddevice as sd
 from config import *
 
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("bokeh")
+logger.setLevel("DEBUG")
 
 with open('ears/model_labels.json', 'r') as labels_file:
     labels = json.load(labels_file)
@@ -115,7 +115,7 @@ def start():
 
             # Populate spectrogram
             new_spec = librosa.feature.melspectrogram(np.concatenate([last_chunk, step_audio])[:, 0],
-                                                      SAMPLING_RATE, n_fft=FFT_SIZE, power_to_db=1e-5,
+                                                      SAMPLING_RATE, n_fft=FFT_SIZE,
                                                       hop_length=CHUNK_SIZE, n_mels=MEL_BANDS)
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')  # Ignore log10 zero division
@@ -155,7 +155,6 @@ def classify(segments):
     X = np.stack(segments)
     X -= AUDIO_MEAN
     X /= AUDIO_STD
-    print(X.shape)
     pred = model.predict(X)
     pred = np.average(pred, axis=0, weights=np.arange(len(pred)) + 1)
 
